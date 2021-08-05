@@ -11,7 +11,7 @@
     "cdk": "cdk",
     "synth": "cdk synth",
     "deploy": "cdk deploy",
-    "destroy": "cdk destroy"
+    "destroy": "cdk destroy -f"
   },
   "devDependencies": {
     "@aws-cdk/assert": "1.116.0",

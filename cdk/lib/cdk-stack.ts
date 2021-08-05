@@ -12,18 +12,24 @@ export class CdkStack extends cdk.Stack {
 
     // DYNAMO TABLES
 
-    const connectionTable = new ddb.Table(this, 'ConnectionsTable', {
+    const connectionTable = new ddb.Table(this, 'GamesTable', {
       partitionKey: {
-        name: 'connectionId',
+        name: 'gameId',
         type: ddb.AttributeType.STRING
       },
       encryption: ddb.TableEncryption.AWS_MANAGED,
-      tableName: 'HogwashConnections',
+      tableName: 'HogwashGames',
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: 'ttl'
     });
 
     // LAMBDA FUNCTIONS
+
+    const libLayer = new lambda.LayerVersion(this, 'HogwashLibs', {
+      compatibleRuntimes: [lambda.Runtime.NODEJS_14_X],
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      code: lambda.Code.fromAsset(path.join('..', 'hogwashlibs')),
+    });
 
     const connectHandler = new lambda.Function(this, 'ConnectHandler', {
       runtime: lambda.Runtime.NODEJS_14_X,
@@ -31,7 +37,8 @@ export class CdkStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join('..', 'onconnect')),
       environment: {
         'TABLE_NAME': connectionTable.tableName
-      }
+      },
+      layers: [libLayer]
     });
     connectionTable.grantReadWriteData(connectHandler);
 
@@ -41,7 +48,8 @@ export class CdkStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join('..', 'ondisconnect')),
       environment: {
         'TABLE_NAME': connectionTable.tableName
-      }
+      },
+      layers: [libLayer]
     });
     connectionTable.grantReadWriteData(disconnectHandler);
 
@@ -57,7 +65,8 @@ export class CdkStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join('..', 'onmessage')),
       environment: {
         'TABLE_NAME': connectionTable.tableName
-      }
+      },
+      layers: [libLayer]
     });
     connectionTable.grantReadWriteData(messageHandler);
 
@@ -89,7 +98,7 @@ export class CdkStack extends cdk.Stack {
       })
     });
 
-    new gw.WebSocketStage(this, 'WebsocketApiStage', {
+    const wsStage = new gw.WebSocketStage(this, 'WebsocketApiStage', {
       webSocketApi,
       stageName: 'hogwash',
       autoDeploy: true
@@ -110,5 +119,10 @@ export class CdkStack extends cdk.Stack {
     });
 
     messageHandler.addToRolePolicy(lambdaApiGWPolicy);
+
+    new cdk.CfnOutput(this, 'wsUrl', {
+      value: wsStage.url,
+      exportName: 'wsUrl'
+    });
   }
 }
