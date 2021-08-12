@@ -23,6 +23,17 @@ export class CdkStack extends cdk.Stack {
       timeToLiveAttribute: 'ttl'
     });
 
+    const playerGameMap = new ddb.Table(this, 'PlayerGameMap', {
+      partitionKey: {
+        name: 'connectionId',
+        type: ddb.AttributeType.STRING
+      },
+      encryption: ddb.TableEncryption.AWS_MANAGED,
+      tableName: 'HogwashPlayers',
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      timeToLiveAttribute: 'ttl'
+    });
+
     // LAMBDA FUNCTIONS
 
     const libLayer = new lambda.LayerVersion(this, 'HogwashLibs', {
@@ -36,22 +47,26 @@ export class CdkStack extends cdk.Stack {
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join('..', 'onconnect')),
       environment: {
-        'TABLE_NAME': connectionTable.tableName
+        'GAMES_TABLE': connectionTable.tableName,
+        'PLAYERS_TABLE': playerGameMap.tableName
       },
       layers: [libLayer]
     });
     connectionTable.grantReadWriteData(connectHandler);
+    playerGameMap.grantReadWriteData(connectHandler);
 
     const disconnectHandler = new lambda.Function(this, 'DisconnectHandler', {
       runtime: lambda.Runtime.NODEJS_14_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join('..', 'ondisconnect')),
       environment: {
-        'TABLE_NAME': connectionTable.tableName
+        'GAMES_TABLE': connectionTable.tableName,
+        'PLAYERS_TABLE': playerGameMap.tableName
       },
       layers: [libLayer]
     });
     connectionTable.grantReadWriteData(disconnectHandler);
+    playerGameMap.grantReadWriteData(disconnectHandler);
 
     const defaultHandler = new lambda.Function(this, 'DefaultHandler', {
       runtime: lambda.Runtime.NODEJS_14_X,
@@ -64,7 +79,7 @@ export class CdkStack extends cdk.Stack {
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join('..', 'onmessage')),
       environment: {
-        'TABLE_NAME': connectionTable.tableName
+        'GAMES_TABLE': connectionTable.tableName
       },
       layers: [libLayer]
     });

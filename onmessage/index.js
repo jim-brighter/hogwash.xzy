@@ -5,13 +5,15 @@ const ddb = new aws.DynamoDB.DocumentClient({
     apiVersion: 'latest'
 });
 
+const GAMES_TABLE = process.env.GAMES_TABLE;
+
 exports.handler = async event => {
 
     let connections;
 
     try {
         connections = await ddb.scan({
-            TableName: process.env.TABLE_NAME,
+            TableName: GAMES_TABLE,
             ProjectionExpression: 'connectionId'
         }).promise();
     } catch(err) {
@@ -38,7 +40,7 @@ exports.handler = async event => {
             if (err.statusCode === 410) {
                 console.log(`${connectionId} is stale, deleting...`);
                 await ddb.delete({
-                    TableName: process.env.TABLE_NAME,
+                    TableName: GAMES_TABLE,
                     Key: {connectionId}
                 }).promise();
             } else {

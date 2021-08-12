@@ -9,6 +9,11 @@ const ddb = new aws.DynamoDB.DocumentClient({
     apiVersion: 'latest'
 });
 
+const GAMES_TABLE = process.env.GAMES_TABLE;
+const PLAYERS_TABLE = process.env.PLAYERS_TABLE;
+
+const EIGHT_HOURS_IN_SECONDS = 8 * 60 * 60;
+
 exports.handler = async event => {
     const connectionId = event.requestContext.connectionId;
     const playerName = event.headers[X_PLAYER_NAME];
@@ -18,13 +23,13 @@ exports.handler = async event => {
 
     const player = new game.Player(connectionId, playerName);
 
-    const ttl = Math.floor(Date.now() / 1000) + (48*60*60);
+    const ttl = Math.floor(Date.now() / 1000) + EIGHT_HOURS_IN_SECONDS;
 
     let gameResult;
 
     try {
         gameResult = await ddb.get({
-            TableName: process.env.TABLE_NAME,
+            TableName: GAMES_TABLE,
             Key: {
                 gameId: gameId
             }
@@ -40,7 +45,7 @@ exports.handler = async event => {
     if (gameResult.Item !== undefined && gameResult.Item !== null) {
         console.log(`Found game with id ${gameId}, updating with new player ${player.name}`);
         const updateParams = {
-            TableName: process.env.TABLE_NAME,
+            TableName: GAMES_TABLE,
             Key: {
                 gameId: gameId
             },
@@ -71,7 +76,7 @@ exports.handler = async event => {
         newGame.rounds = ['test'];
 
         const putParams = {
-            TableName: process.env.TABLE_NAME,
+            TableName: GAMES_TABLE,
             Item: newGame
         };
 
@@ -84,6 +89,27 @@ exports.handler = async event => {
                 body: `Failed to connect ${player.name} to ${gameId}: ${JSON.stringify(e)}`
             };
         }
+    }
+
+    try {
+        console.log(`Adding ${connectionId} to ${PLAYERS_TABLE}`);
+
+        const putParams = {
+            TableName: PLAYERS_TABLE,
+            Item: {
+                connectionId: connectionId,
+                gameId: gameId,
+                ttl: ttl
+            }
+        };
+
+        await ddb.put(putParams).promise();
+    } catch(e) {
+        console.error(`Error adding player to ${PLAYERS_TABLE}: ${JSON.stringify(e)}`);
+        return {
+            statusCode: 500,
+            body: `Failed to connect ${player.name}: ${JSON.stringify(e)}`
+        };
     }
 
     return {
