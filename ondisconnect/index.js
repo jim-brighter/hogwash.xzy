@@ -48,7 +48,7 @@ exports.handler = async event => {
         };
     }
 
-    if (gameRecord.players.length === 1) {
+    if (gameRecord.Item.players.length === 1) {
         console.log(`Game ${gameId} only has 1 player, deleting game`);
 
         const deleteParams = {
@@ -70,17 +70,14 @@ exports.handler = async event => {
     } else {
         console.log(`Game ${gameId} has more than 1 player, removing player`);
 
-        const playerIndex = gameRecord.players.findIndex(p => p.connectionId === connectionId);
+        const playerIndex = gameRecord.Item.players.findIndex(p => p.connectionId === connectionId);
 
         const updateParams = {
             TableName: GAMES_TABLE,
             Key: {
                 gameId: gameId
             },
-            UpdateExpression: "remove players[:index]",
-            ExpressionAttributeValues: {
-                ":index": playerIndex
-            }
+            UpdateExpression: `remove players[${playerIndex}]`
         };
 
         try {
