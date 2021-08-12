@@ -4,6 +4,7 @@ import * as lambda from '@aws-cdk/aws-lambda';
 import * as gw from '@aws-cdk/aws-apigatewayv2';
 import * as integrations from '@aws-cdk/aws-apigatewayv2-integrations';
 import * as iam from '@aws-cdk/aws-iam';
+import * as logs from '@aws-cdk/aws-logs';
 import * as path from 'path';
 
 export class CdkStack extends cdk.Stack {
@@ -39,7 +40,7 @@ export class CdkStack extends cdk.Stack {
     const libLayer = new lambda.LayerVersion(this, 'HogwashLibs', {
       compatibleRuntimes: [lambda.Runtime.NODEJS_14_X],
       removalPolicy: cdk.RemovalPolicy.DESTROY,
-      code: lambda.Code.fromAsset(path.join('..', 'hogwashlibs')),
+      code: lambda.Code.fromAsset(path.join('..', 'hogwashlibs'))
     });
 
     const connectHandler = new lambda.Function(this, 'ConnectHandler', {
@@ -50,7 +51,8 @@ export class CdkStack extends cdk.Stack {
         'GAMES_TABLE': connectionTable.tableName,
         'PLAYERS_TABLE': playerGameMap.tableName
       },
-      layers: [libLayer]
+      layers: [libLayer],
+      logRetention: logs.RetentionDays.ONE_DAY
     });
     connectionTable.grantReadWriteData(connectHandler);
     playerGameMap.grantReadWriteData(connectHandler);
@@ -63,7 +65,8 @@ export class CdkStack extends cdk.Stack {
         'GAMES_TABLE': connectionTable.tableName,
         'PLAYERS_TABLE': playerGameMap.tableName
       },
-      layers: [libLayer]
+      layers: [libLayer],
+      logRetention: logs.RetentionDays.ONE_DAY
     });
     connectionTable.grantReadWriteData(disconnectHandler);
     playerGameMap.grantReadWriteData(disconnectHandler);
@@ -71,7 +74,8 @@ export class CdkStack extends cdk.Stack {
     const defaultHandler = new lambda.Function(this, 'DefaultHandler', {
       runtime: lambda.Runtime.NODEJS_14_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset(path.join('..', 'ondefault'))
+      code: lambda.Code.fromAsset(path.join('..', 'ondefault')),
+      logRetention: logs.RetentionDays.ONE_DAY
     });
 
     const messageHandler = new lambda.Function(this, 'MessageHandler', {
@@ -81,7 +85,8 @@ export class CdkStack extends cdk.Stack {
       environment: {
         'GAMES_TABLE': connectionTable.tableName
       },
-      layers: [libLayer]
+      layers: [libLayer],
+      logRetention: logs.RetentionDays.ONE_DAY
     });
     connectionTable.grantReadWriteData(messageHandler);
 
