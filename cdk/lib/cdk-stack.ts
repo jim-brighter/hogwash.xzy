@@ -12,38 +12,61 @@ export class CdkStack extends cdk.Stack {
 
     // DYNAMO TABLES
 
-    const connectionTable = new ddb.Table(this, 'ConnectionsTable', {
+    const connectionTable = new ddb.Table(this, 'GamesTable', {
+      partitionKey: {
+        name: 'gameId',
+        type: ddb.AttributeType.STRING
+      },
+      encryption: ddb.TableEncryption.AWS_MANAGED,
+      tableName: 'HogwashGames',
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      timeToLiveAttribute: 'ttl'
+    });
+
+    const playerGameMap = new ddb.Table(this, 'PlayerGameMap', {
       partitionKey: {
         name: 'connectionId',
         type: ddb.AttributeType.STRING
       },
       encryption: ddb.TableEncryption.AWS_MANAGED,
-      tableName: 'HogwashConnections',
+      tableName: 'HogwashPlayers',
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       timeToLiveAttribute: 'ttl'
     });
 
     // LAMBDA FUNCTIONS
 
+    const libLayer = new lambda.LayerVersion(this, 'HogwashLibs', {
+      compatibleRuntimes: [lambda.Runtime.NODEJS_14_X],
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      code: lambda.Code.fromAsset(path.join('..', 'hogwashlibs')),
+    });
+
     const connectHandler = new lambda.Function(this, 'ConnectHandler', {
       runtime: lambda.Runtime.NODEJS_14_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join('..', 'onconnect')),
       environment: {
-        'TABLE_NAME': connectionTable.tableName
-      }
+        'GAMES_TABLE': connectionTable.tableName,
+        'PLAYERS_TABLE': playerGameMap.tableName
+      },
+      layers: [libLayer]
     });
     connectionTable.grantReadWriteData(connectHandler);
+    playerGameMap.grantReadWriteData(connectHandler);
 
     const disconnectHandler = new lambda.Function(this, 'DisconnectHandler', {
       runtime: lambda.Runtime.NODEJS_14_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join('..', 'ondisconnect')),
       environment: {
-        'TABLE_NAME': connectionTable.tableName
-      }
+        'GAMES_TABLE': connectionTable.tableName,
+        'PLAYERS_TABLE': playerGameMap.tableName
+      },
+      layers: [libLayer]
     });
     connectionTable.grantReadWriteData(disconnectHandler);
+    playerGameMap.grantReadWriteData(disconnectHandler);
 
     const defaultHandler = new lambda.Function(this, 'DefaultHandler', {
       runtime: lambda.Runtime.NODEJS_14_X,
@@ -56,8 +79,9 @@ export class CdkStack extends cdk.Stack {
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join('..', 'onmessage')),
       environment: {
-        'TABLE_NAME': connectionTable.tableName
-      }
+        'GAMES_TABLE': connectionTable.tableName
+      },
+      layers: [libLayer]
     });
     connectionTable.grantReadWriteData(messageHandler);
 
@@ -89,7 +113,7 @@ export class CdkStack extends cdk.Stack {
       })
     });
 
-    new gw.WebSocketStage(this, 'WebsocketApiStage', {
+    const wsStage = new gw.WebSocketStage(this, 'WebsocketApiStage', {
       webSocketApi,
       stageName: 'hogwash',
       autoDeploy: true
@@ -110,5 +134,10 @@ export class CdkStack extends cdk.Stack {
     });
 
     messageHandler.addToRolePolicy(lambdaApiGWPolicy);
+
+    new cdk.CfnOutput(this, 'wsUrl', {
+      value: wsStage.url,
+      exportName: 'wsUrl'
+    });
   }
 }
