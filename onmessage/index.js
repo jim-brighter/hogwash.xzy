@@ -1,4 +1,5 @@
 const aws = require('aws-sdk');
+const game = require('/opt/nodejs/game');
 
 const ddb = new aws.DynamoDB.DocumentClient({
     region: process.env.AWS_REGION,
@@ -9,17 +10,25 @@ const GAMES_TABLE = process.env.GAMES_TABLE;
 
 exports.handler = async event => {
 
-    let connections;
+    const eventData = JSON.parse(event.body).data;
+    const gameId = eventData.gameId;
+
+    let players;
 
     try {
-        connections = await ddb.scan({
+        const gameRecord = await ddb.get({
             TableName: GAMES_TABLE,
-            ProjectionExpression: 'connectionId'
+            Key: {
+                gameId: gameId
+            }
         }).promise();
-    } catch(err) {
+
+        players = gameRecord.Item.players;
+    } catch(e) {
+        console.error(`Error retrieving game ${gameId}: ${JSON.stringify(e)}`);
         return {
             statusCode: 500,
-            body: err.stack
+            body: `Error retrieving game ${gameId}: ${JSON.stringify(e)}`
         };
     }
 
@@ -28,23 +37,17 @@ exports.handler = async event => {
         endpoint: `${event.requestContext.domainName}/${event.requestContext.stage}`
     });
 
-    const data = JSON.parse(event.body).data;
-
-    const postCalls = connections.Items.map(async ({connectionId}) => {
+    const postCalls = players.map(async (player) => {
         try {
             await gwManager.postToConnection({
-                ConnectionId: connectionId,
-                Data: `${data.user}: ${data.message}`
+                ConnectionId: player.connectionId,
+                Data: `${eventData.user}: ${eventData.message}`
             }).promise();
         } catch(err) {
             if (err.statusCode === 410) {
-                console.log(`${connectionId} is stale, deleting...`);
-                await ddb.delete({
-                    TableName: GAMES_TABLE,
-                    Key: {connectionId}
-                }).promise();
+                console.log(`${connectionId} is stale`);
             } else {
-                console.error(JSON.stringify(err));
+                console.error(`Error sending data to ${connectionId} in game ${gameId}: ${JSON.stringify(err)}`);
                 throw err;
             }
         }
@@ -56,7 +59,7 @@ exports.handler = async event => {
         console.error(JSON.stringify(err));
         return {
             statusCode: 500,
-            body: err.stack
+            body: JSON.stringify(err)
         };
     }
 
