@@ -150,21 +150,21 @@ export class CdkStack extends cdk.Stack {
 
     // S3 SITE
 
-    const frontendBucket = new s3.Bucket(this, 'hogwash-frontend-bucket', {
-      bucketName: 'hogwash-frontend-bucket',
+    const frontendBucket = new s3.Bucket(this, 'HogwashFrontendBucket', {
+      bucketName: 'www.hogwash.xyz',
       publicReadAccess: true,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
       websiteIndexDocument: 'index.html'
     });
 
-    const frontendDeployment = new s3deployment.BucketDeployment(this, 'hogwash-frontend-deployment', {
+    const frontendDeployment = new s3deployment.BucketDeployment(this, 'HogwashFrontendDeployment', {
       sources: [s3deployment.Source.asset('../frontend')],
       destinationBucket: frontendBucket
     });
 
     // ROUTE 53
 
-    const cname = new route53.CnameRecord(this, 'hogwash-cname', {
+    const cname = new route53.CnameRecord(this, 'HogwashCname', {
       zone: route53.HostedZone.fromLookup(this, 'hosted-zone', {
         domainName: 'hogwash.xyz'
       }),
