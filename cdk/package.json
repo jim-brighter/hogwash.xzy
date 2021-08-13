@@ -9,9 +9,12 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "synth": "cdk synth",
-    "deploy": "cdk deploy",
-    "destroy": "cdk destroy -f"
+    "synthMain": "cdk synth HogwashStack",
+    "deployMain": "cdk deploy HogwashStack --require-approval never",
+    "destroyMain": "aws s3 rm s3://hogwash-frontend-bucket --recursive 1>/dev/null 2>&1; cdk destroy HogwashStack -f",
+    "synthHostedZone": "cdk synth HogwashHostedZone",
+    "deployHostedZone": "cdk deploy HogwashHostedZone --require-approval never",
+    "destroyHostedZone": "cdk destroy HogwashHostedZone -f"
   },
   "devDependencies": {
     "@aws-cdk/assert": "^1.118.0",
@@ -30,6 +33,9 @@
     "@aws-cdk/aws-iam": "^1.118.0",
     "@aws-cdk/aws-lambda": "^1.118.0",
     "@aws-cdk/aws-logs": "^1.118.0",
+    "@aws-cdk/aws-route53": "^1.118.0",
+    "@aws-cdk/aws-s3": "^1.118.0",
+    "@aws-cdk/aws-s3-deployment": "^1.118.0",
     "@aws-cdk/core": "^1.118.0",
     "source-map-support": "^0.5.16"
   }

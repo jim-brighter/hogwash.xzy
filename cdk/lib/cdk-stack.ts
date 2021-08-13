@@ -5,6 +5,9 @@ import * as gw from '@aws-cdk/aws-apigatewayv2';
 import * as integrations from '@aws-cdk/aws-apigatewayv2-integrations';
 import * as iam from '@aws-cdk/aws-iam';
 import * as logs from '@aws-cdk/aws-logs';
+import * as s3 from '@aws-cdk/aws-s3';
+import * as s3deployment from '@aws-cdk/aws-s3-deployment';
+import * as route53 from '@aws-cdk/aws-route53';
 import * as path from 'path';
 
 export class CdkStack extends cdk.Stack {
@@ -143,6 +146,30 @@ export class CdkStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'wsUrl', {
       value: wsStage.url,
       exportName: 'wsUrl'
+    });
+
+    // S3 SITE
+
+    const frontendBucket = new s3.Bucket(this, 'hogwash-frontend-bucket', {
+      bucketName: 'hogwash-frontend-bucket',
+      publicReadAccess: true,
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+      websiteIndexDocument: 'index.html'
+    });
+
+    const frontendDeployment = new s3deployment.BucketDeployment(this, 'hogwash-frontend-deployment', {
+      sources: [s3deployment.Source.asset('../frontend')],
+      destinationBucket: frontendBucket
+    });
+
+    // ROUTE 53
+
+    const cname = new route53.CnameRecord(this, 'hogwash-cname', {
+      zone: route53.HostedZone.fromLookup(this, 'hosted-zone', {
+        domainName: 'hogwash.xyz'
+      }),
+      recordName: 'www',
+      domainName: frontendBucket.bucketWebsiteDomainName
     });
   }
 }
