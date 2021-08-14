@@ -8,10 +8,11 @@ export class FrontendStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        // S3 SITE
+      // S3 SITE
 
-    const frontendRootBucket = new s3.Bucket(this, 'HogwashFrontendRootBucket', {
+      const frontendRootBucket = new s3.Bucket(this, 'HogwashFrontendRootBucket', {
         bucketName: 'hogwash.xyz',
+        encryption: s3.BucketEncryption.S3_MANAGED,
         removalPolicy: cdk.RemovalPolicy.DESTROY,
         versioned: true,
         publicReadAccess: true,
@@ -20,6 +21,7 @@ export class FrontendStack extends cdk.Stack {
 
       const frontendSubdomainBucket = new s3.Bucket(this, 'HogwashFrontendSubdomainBucket', {
         bucketName: 'www.hogwash.xyz',
+        encryption: s3.BucketEncryption.S3_MANAGED,
         removalPolicy: cdk.RemovalPolicy.DESTROY,
         versioned: true,
         websiteRedirect: {
