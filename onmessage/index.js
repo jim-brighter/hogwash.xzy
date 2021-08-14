@@ -7,6 +7,7 @@ const ddb = new aws.DynamoDB.DocumentClient({
 });
 
 const GAMES_TABLE = process.env.GAMES_TABLE;
+const RESPONSE_ENDPOINT = process.env.RESPONSE_ENDPOINT;
 
 exports.handler = async event => {
 
@@ -34,7 +35,7 @@ exports.handler = async event => {
 
     const gwManager = new aws.ApiGatewayManagementApi({
         apiVersion: 'latest',
-        endpoint: `${event.requestContext.domainName}/${event.requestContext.stage}`
+        endpoint: RESPONSE_ENDPOINT
     });
 
     const postCalls = players.map(async (player) => {
@@ -45,9 +46,9 @@ exports.handler = async event => {
             }).promise();
         } catch(err) {
             if (err.statusCode === 410) {
-                console.log(`${connectionId} is stale`);
+                console.log(`${player.connectionId} is stale`);
             } else {
-                console.error(`Error sending data to ${connectionId} in game ${gameId}: ${JSON.stringify(err)}`);
+                console.error(`Error sending data to ${player.connectionId} in game ${gameId}: ${JSON.stringify(err)}`);
                 throw err;
             }
         }

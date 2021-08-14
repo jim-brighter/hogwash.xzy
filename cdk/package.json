@@ -9,11 +9,11 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "synthMain": "cdk synth HogwashStack",
-    "deployMain": "cdk deploy HogwashStack --require-approval never",
-    "destroyMain": "aws s3 rm s3://www.hogwash.xyz --recursive 1>/dev/null 2>&1; aws s3 rm s3://hogwash.xyz --recursive 1>/dev/null 2>&1; cdk destroy HogwashStack -f",
-    "synthHostedZone": "cdk synth HogwashHostedZone",
-    "deployHostedZone": "cdk deploy HogwashHostedZone --require-approval never",
+    "deployBackend": "cdk deploy HogwashBackend --require-approval never --outputs-file backend-outputs.json",
+    "destroyBackend": "cdk destroy HogwashBackend -f",
+    "deployFrontend": "cdk deploy HogwashFrontend --require-approval never --outputs-file frontend-outputs.json",
+    "destroyFrontend": "cdk destroy HogwashFrontend -f",
+    "deployHostedZone": "cdk deploy HogwashHostedZone --require-approval never --outputs-file hosted-zone-outputs.json",
     "destroyHostedZone": "cdk destroy HogwashHostedZone -f"
   },
   "devDependencies": {
@@ -29,6 +29,7 @@
   "dependencies": {
     "@aws-cdk/aws-apigatewayv2": "^1.118.0",
     "@aws-cdk/aws-apigatewayv2-integrations": "^1.118.0",
+    "@aws-cdk/aws-certificatemanager": "^1.118.0",
     "@aws-cdk/aws-dynamodb": "^1.118.0",
     "@aws-cdk/aws-iam": "^1.118.0",
     "@aws-cdk/aws-lambda": "^1.118.0",
