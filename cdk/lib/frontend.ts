@@ -31,7 +31,7 @@ export class FrontendStack extends cdk.Stack {
       });
 
       const frontendDeployment = new s3deployment.BucketDeployment(this, 'HogwashFrontendDeployment', {
-        sources: [s3deployment.Source.asset('../frontend')],
+        sources: [s3deployment.Source.asset('../frontend/build')],
         destinationBucket: frontendRootBucket
       });
 
