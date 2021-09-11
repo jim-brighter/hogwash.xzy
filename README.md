@@ -6,7 +6,7 @@ A free-to-play online version of the board game Balderdash. Runs serverlessly in
 ### Chatroom Testing Notes
 - To Connect with `wscat`:
 ```bash
-wscat -H X-Player-Name:<name> -H X-Game-Id:<gameId> -c <websocket url>
+wscat -c "wss://game.hogwash.xyz?playerName=<name>&gameId=<id>"
 ```
 - To send a message:
 ```bash
