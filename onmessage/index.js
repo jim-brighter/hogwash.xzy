@@ -42,7 +42,11 @@ exports.handler = async event => {
         try {
             await gwManager.postToConnection({
                 ConnectionId: player.connectionId,
-                Data: `${eventData.user}: ${eventData.message}`
+                Data: JSON.stringify({
+                    user: eventData.user,
+                    message: eventData.message,
+                    action: 'sendmessage'
+                })
             }).promise();
         } catch(err) {
             if (err.statusCode === 410) {

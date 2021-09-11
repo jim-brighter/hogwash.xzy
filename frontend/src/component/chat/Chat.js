@@ -32,28 +32,20 @@ class TextEntry extends React.Component {
 }
 
 class Chat extends React.Component {
-    constructor(props) {
-        super(props);
-
-        this.state = {
-            chatLog: []
-        };
-    }
-
     handleKeyDown(e) {
         if (e.keyCode === 13 && e.shiftKey === false) {
             e.preventDefault();
 
-            const chatLog = this.state.chatLog.slice();
-            chatLog.push({
-                text: e.target.value,
-                user: 'me',
-                key: chatLog.length
-            });
-
-            this.setState({
-                chatLog
-            });
+            this.props.websocket.send(
+                JSON.stringify({
+                    action: "sendmessage",
+                    data: {
+                        gameId: this.props.gameId,
+                        user: this.props.playerName,
+                        message: e.target.value
+                    }
+                })
+            );
 
             e.target.value = '';
         }
@@ -62,7 +54,7 @@ class Chat extends React.Component {
     render() {
         return (
             <div className="chat-component">
-                <ChatWindow messages={this.state.chatLog} />
+                <ChatWindow messages={this.props.chatLog} />
                 <TextEntry onKeyDown={(e) => this.handleKeyDown(e)} />
             </div>
         );
