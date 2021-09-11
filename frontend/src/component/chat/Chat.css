@@ -1,0 +1,40 @@
+.chat-component {
+    font-size: small;
+    grid-column-start: 3;
+    grid-column-end: 4;
+    grid-row-start: 1;
+    grid-row-end: 3;
+    display: grid;
+    grid-template-rows: 90% 10%;
+    border-left: 1px solid black;
+}
+
+.chat-window {
+    grid-row-start: 1;
+    grid-row-end: 2;
+    padding: .2rem;
+}
+
+.chat-title {
+    margin: 0;
+}
+
+.text-entry {
+    grid-row-start: 2;
+    grid-row-end: 3;
+    padding: 0.2rem;
+    border-top: 1px solid black;
+}
+
+textarea {
+    width: 100%;
+    height: 100%;
+    border: none;
+    resize: none;
+    padding: 0;
+    font-family: inherit;
+}
+
+textarea:focus {
+    outline: none;
+}
