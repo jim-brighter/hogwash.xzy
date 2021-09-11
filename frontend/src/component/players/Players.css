@@ -1,0 +1,19 @@
+.players {
+    grid-column-start: 1;
+    grid-column-end: 2;
+    border-right: 1px solid black;
+    padding: 0.2rem;
+}
+
+.players-title {
+    margin: 0;
+}
+
+ul {
+    padding-left: 1rem;
+}
+
+li {
+    list-style: none;
+    padding: 0.5rem;
+}
