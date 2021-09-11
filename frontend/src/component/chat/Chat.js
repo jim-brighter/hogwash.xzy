@@ -25,7 +25,7 @@ class TextEntry extends React.Component {
     render() {
         return (
             <div className="text-entry">
-                <textarea placeholder="Start typing..." onKeyDown={(e) => this.props.onKeyDown(e, )}></textarea>
+                <textarea placeholder="Start typing..." onKeyDown={(e) => this.props.onKeyDown(e)}></textarea>
             </div>
         );
     }
