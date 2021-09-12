@@ -1,54 +1,72 @@
 import React from 'react';
+import Landing from './component/landing/Landing';
+import Waiting from './component/waiting/Waiting';
 import Players from './component/players/Players';
 import Game from './component/game/Game';
 import Chat from './component/chat/Chat';
 import './App.css';
 
+const GAME_STATUS = {
+    LANDING: 'LANDING',
+    WAITING: 'WAITING',
+    IN_GAME: 'IN_GAME'
+}
+
 class Hogwash extends React.Component {
+
+    websocket;
+    playerName;
+    gameId;
+
     constructor(props) {
         super(props);
 
-        const playerName = 'jim';
-        const gameId = '1';
-
-        const websocket = new WebSocket(`wss://game.hogwash.xyz?playerName=${playerName}&gameId=${gameId}`);
-
         this.state = {
-            playerName,
-            gameId,
-            websocket,
+            gameStatus: GAME_STATUS.LANDING,
+            players: [],
             chatLog: []
         };
+    }
+
+    handleLandingSubmit(data) {
+        this.websocket = new WebSocket(`wss://game.hogwash.xyz?playerName=${data.name}&gameId=${data.gameId}`);
+        this.playerName = data.name;
+        this.gameId = data.gameId;
 
         this.initWebsocket();
+
+        const players = this.state.players.slice();
+        players.push(this.playerName);
+
+        this.setState({
+            gameStatus: GAME_STATUS.WAITING,
+            players
+        });
     }
 
     initWebsocket() {
-        const websocket = this.state.websocket;
-
-        websocket.onopen = (e) => {
+        this.websocket.onopen = (e) => {
             console.log('Websocket connection open');
         };
 
-        websocket.onmessage = (e) => {
+        this.websocket.onmessage = (e) => {
             const data = JSON.parse(e.data);
 
             switch(data.action) {
                 case 'sendmessage':
-                    this.handleNewMessage(data);
+                    this.handleNewChatMessage(data);
+                    break;
+                case 'newplayer':
+                    this.handleNewPlayer(data);
                     break;
                 default:
                     console.error('Unhandled websocket message');
                     break;
             }
         };
-
-        this.setState({
-            websocket
-        });
     }
 
-    handleNewMessage(data) {
+    handleNewChatMessage(data) {
         const chatLog = this.state.chatLog.slice();
         chatLog.push({
             text: data.message,
@@ -61,19 +79,43 @@ class Hogwash extends React.Component {
         });
     }
 
+    handleNewPlayer(data) {
+        this.setState({
+            players: data.players
+        });
+    }
+
     render() {
-        return (
-            <div className="app">
-                <Players />
-                <Game />
-                <Chat
-                    playerName={this.state.playerName}
-                    gameId={this.state.gameId}
-                    websocket={this.state.websocket}
-                    chatLog={this.state.chatLog}
+        if (this.state.gameStatus === GAME_STATUS.LANDING) {
+            return (
+                <Landing
+                    onLandingSubmit={(data) => this.handleLandingSubmit(data)}
                 />
-            </div>
-        );
+            );
+        }
+        else if (this.state.gameStatus === GAME_STATUS.WAITING) {
+            return (
+                <Waiting
+                    players={this.state.players}
+                />
+            );
+        }
+        else {
+            return (
+                <div className="app">
+                    <Players
+                        players={this.state.players}
+                    />
+                    <Game />
+                    <Chat
+                        playerName={this.playerName}
+                        gameId={this.gameId}
+                        websocket={this.websocket}
+                        chatLog={this.state.chatLog}
+                    />
+                </div>
+            );
+        }
     }
 }
 

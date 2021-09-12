@@ -127,6 +127,7 @@ export class BackendStack extends cdk.Stack {
       autoDeploy: true
     });
 
+    connectHandler.addEnvironment('RESPONSE_ENDPOINT', wsStage.url.replace('wss://', ''));
     messageHandler.addEnvironment('RESPONSE_ENDPOINT', wsStage.url.replace('wss://', ''));
 
     const domain = new apigatewayv2.DomainName(this, 'customDomain', {
@@ -162,6 +163,7 @@ export class BackendStack extends cdk.Stack {
       resources: [websocketConnectionsArn]
     });
 
+    connectHandler.addToRolePolicy(lambdaApiGWPolicy);
     messageHandler.addToRolePolicy(lambdaApiGWPolicy);
 
     // ROUTE 53

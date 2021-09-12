@@ -2,15 +2,11 @@ import React from 'react';
 import './Players.css';
 
 class Players extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
     render() {
         const players = [];
 
-        for (let i = 0; i < 10; i++) {
-            players.push(<li key={i}>Player {i}</li>);
+        for (let p of this.props.players) {
+            players.push(<li key={p}>{p}</li>);
         }
 
         return (

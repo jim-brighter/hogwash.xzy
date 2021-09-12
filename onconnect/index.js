@@ -9,6 +9,8 @@ const ddb = new aws.DynamoDB.DocumentClient({
 const GAMES_TABLE = process.env.GAMES_TABLE;
 const PLAYERS_TABLE = process.env.PLAYERS_TABLE;
 
+const RESPONSE_ENDPOINT = process.env.RESPONSE_ENDPOINT;
+
 const EIGHT_HOURS_IN_SECONDS = 8 * 60 * 60;
 
 exports.handler = async event => {
@@ -65,6 +67,45 @@ exports.handler = async event => {
                 body: `Failed to connect ${player.name} to ${gameId}: ${JSON.stringify(e)}`
             };
         }
+
+        const gwManager = new aws.ApiGatewayManagementApi({
+            apiVersion: 'latest',
+            endpoint: RESPONSE_ENDPOINT
+        });
+
+        const allPlayerNames = gameResult.Item.players.map((p) => {
+            return p.name;
+        });
+
+        const postCalls = gameResult.Item.players.map(async (player) => {
+            try {
+                await gwManager.postToConnection({
+                    ConnectionId: player.connectionId,
+                    Data: JSON.stringify({
+                        action: 'newplayer',
+                        players: allPlayerNames.concat([playerName])
+                    })
+                }).promise();
+            } catch(err) {
+                if (err.statusCode === 410) {
+                    console.log(`${player.connectionId} is stale`);
+                } else {
+                    console.error(`Error sending data to ${player.connectionId} in game ${gameId}: ${JSON.stringify(err)}`);
+                    throw err;
+                }
+            }
+        });
+
+        try {
+            await Promise.all(postCalls);
+        } catch(err) {
+            console.error(JSON.stringify(err));
+            return {
+                statusCode: 500,
+                body: JSON.stringify(err)
+            };
+        }
+
     } else {
         console.log(`Game with id ${gameId} not found, creating a new one`);
 
