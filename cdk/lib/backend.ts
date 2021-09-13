@@ -46,13 +46,26 @@ export class BackendStack extends cdk.Stack {
       code: lambda.Code.fromAsset(path.join('..', 'hogwashlibs'))
     });
 
+    const sendPlayersHandler = new lambda.Function(this, 'SendPlayersHandler', {
+      runtime: lambda.Runtime.NODEJS_14_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset(path.join('..', 'onsendplayers')),
+      environment: {
+        'GAMES_TABLE': connectionTable.tableName
+      },
+      layers: [libLayer],
+      logRetention: logs.RetentionDays.ONE_DAY
+    });
+    connectionTable.grantReadWriteData(sendPlayersHandler);
+
     const connectHandler = new lambda.Function(this, 'ConnectHandler', {
       runtime: lambda.Runtime.NODEJS_14_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset(path.join('..', 'onconnect')),
       environment: {
         'GAMES_TABLE': connectionTable.tableName,
-        'PLAYERS_TABLE': playerGameMap.tableName
+        'PLAYERS_TABLE': playerGameMap.tableName,
+        'SEND_PLAYERS_FUNCTIONNAME': sendPlayersHandler.functionName
       },
       layers: [libLayer],
       logRetention: logs.RetentionDays.ONE_DAY
@@ -127,8 +140,11 @@ export class BackendStack extends cdk.Stack {
       autoDeploy: true
     });
 
-    connectHandler.addEnvironment('RESPONSE_ENDPOINT', wsStage.url.replace('wss://', ''));
-    messageHandler.addEnvironment('RESPONSE_ENDPOINT', wsStage.url.replace('wss://', ''));
+    const wsStageUrl = wsStage.url.replace('wss://', '');
+
+    sendPlayersHandler.addEnvironment('RESPONSE_ENDPOINT', wsStageUrl);
+    connectHandler.addEnvironment('RESPONSE_ENDPOINT', wsStageUrl);
+    messageHandler.addEnvironment('RESPONSE_ENDPOINT', wsStageUrl);
 
     const domain = new apigatewayv2.DomainName(this, 'customDomain', {
       certificate: certmanager.Certificate.fromCertificateArn(this, 'acmCert', 'arn:aws:acm:us-east-1:108929950724:certificate/40fe96cd-6d5c-459f-8dde-7837e0f47e78'),
@@ -163,6 +179,16 @@ export class BackendStack extends cdk.Stack {
       resources: [websocketConnectionsArn]
     });
 
+    const lambdaInvokePolicy = new iam.PolicyStatement({
+      actions: [
+        'lambda:InvokeFunction'
+      ],
+      effect: iam.Effect.ALLOW,
+      resources: [sendPlayersHandler.functionArn]
+    })
+
+    sendPlayersHandler.addToRolePolicy(lambdaApiGWPolicy);
+    connectHandler.addToRolePolicy(lambdaInvokePolicy);
     connectHandler.addToRolePolicy(lambdaApiGWPolicy);
     messageHandler.addToRolePolicy(lambdaApiGWPolicy);
 

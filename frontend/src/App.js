@@ -29,18 +29,15 @@ class Hogwash extends React.Component {
     }
 
     handleLandingSubmit(data) {
-        this.websocket = new WebSocket(`wss://game.hogwash.xyz?playerName=${data.name}&gameId=${data.gameId}`);
         this.playerName = data.name;
         this.gameId = data.gameId;
 
+        this.websocket = new WebSocket(`wss://game.hogwash.xyz?playerName=${this.playerName}&gameId=${this.gameId}`);
+
         this.initWebsocket();
 
-        const players = this.state.players.slice();
-        players.push(this.playerName);
-
         this.setState({
-            gameStatus: GAME_STATUS.WAITING,
-            players
+            gameStatus: GAME_STATUS.WAITING
         });
     }
 
