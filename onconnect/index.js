@@ -1,10 +1,12 @@
 const aws = require('aws-sdk');
 const game = require('/opt/nodejs/game');
 
-const X_PLAYER_NAME = 'X-Player-Name';
-const X_GAME_ID = 'X-Game-Id';
-
 const ddb = new aws.DynamoDB.DocumentClient({
+    region: process.env.AWS_REGION,
+    apiVersion: 'latest'
+});
+
+const lambda = new aws.Lambda({
     region: process.env.AWS_REGION,
     apiVersion: 'latest'
 });
@@ -12,12 +14,14 @@ const ddb = new aws.DynamoDB.DocumentClient({
 const GAMES_TABLE = process.env.GAMES_TABLE;
 const PLAYERS_TABLE = process.env.PLAYERS_TABLE;
 
+const SEND_PLAYERS_FUNCTIONNAME = process.env.SEND_PLAYERS_FUNCTIONNAME;
+
 const EIGHT_HOURS_IN_SECONDS = 8 * 60 * 60;
 
 exports.handler = async event => {
     const connectionId = event.requestContext.connectionId;
-    const playerName = event.headers[X_PLAYER_NAME];
-    const gameId = event.headers[X_GAME_ID];
+    const playerName = event.queryStringParameters.playerName;
+    const gameId = event.queryStringParameters.gameId;
 
     console.log(`Connecting ${connectionId} to ${gameId}`);
 
@@ -111,6 +115,20 @@ exports.handler = async event => {
             body: `Failed to connect ${player.name}: ${JSON.stringify(e)}`
         };
     }
+
+    const lambdaResponse = await lambda.invoke({
+        FunctionName: SEND_PLAYERS_FUNCTIONNAME,
+        Payload: JSON.stringify({
+            body: JSON.stringify({
+                data: {
+                    gameId: gameId
+                }
+            })
+        }),
+        InvocationType: 'Event'
+    }).promise();
+
+    console.log(lambdaResponse);
 
     return {
         statusCode: 200,

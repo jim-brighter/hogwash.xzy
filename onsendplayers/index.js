@@ -1,5 +1,4 @@
 const aws = require('aws-sdk');
-const game = require('/opt/nodejs/game');
 
 const ddb = new aws.DynamoDB.DocumentClient({
     region: process.env.AWS_REGION,
@@ -10,21 +9,18 @@ const GAMES_TABLE = process.env.GAMES_TABLE;
 const RESPONSE_ENDPOINT = process.env.RESPONSE_ENDPOINT;
 
 exports.handler = async event => {
-
     const eventData = JSON.parse(event.body).data;
     const gameId = eventData.gameId;
 
-    let players;
+    let gameResult;
 
     try {
-        const gameRecord = await ddb.get({
+        gameResult = await ddb.get({
             TableName: GAMES_TABLE,
             Key: {
                 gameId: gameId
             }
         }).promise();
-
-        players = gameRecord.Item.players;
     } catch(e) {
         console.error(`Error retrieving game ${gameId}: ${JSON.stringify(e)}`);
         return {
@@ -38,14 +34,17 @@ exports.handler = async event => {
         endpoint: RESPONSE_ENDPOINT
     });
 
-    const postCalls = players.map(async (player) => {
+    const allPlayerNames = gameResult.Item.players.map((p) => {
+        return p.name;
+    });
+
+    const postCalls = gameResult.Item.players.map(async (player) => {
         try {
             await gwManager.postToConnection({
                 ConnectionId: player.connectionId,
                 Data: JSON.stringify({
-                    user: eventData.user,
-                    message: eventData.message,
-                    action: 'sendmessage'
+                    action: 'newplayer',
+                    players: allPlayerNames
                 })
             }).promise();
         } catch(err) {
@@ -70,6 +69,6 @@ exports.handler = async event => {
 
     return {
         statusCode: 200,
-        body: 'Received'
+        body: 'Sent events'
     };
 };
